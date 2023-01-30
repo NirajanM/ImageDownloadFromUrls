@@ -20,6 +20,7 @@ function getIndexedFileName(i) {
 
 //asynchronous function to download images from imageUrls.json file
 async function downloadImages(imageUrls) {
+    let j = 1;
     //loop that runs through whole array of images and return single url and it's index in array
     for (let [i, imageUrl] of imageUrls.entries()) {
         const fileNameWithPath = getIndexedFileName(i + 1);
@@ -27,22 +28,34 @@ async function downloadImages(imageUrls) {
         const blob = await response.blob();
         const arrayBuffer = await blob.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
+        //by such way of changing response in buffer we can easily write it in output image file
+
         await sharp(buffer).resize(width).toFile(fileNameWithPath, function (err) {
-            if (err) { console.log(err) };
+            if (err) { console.log(err) }
+            else {
+                console.log("image " + j + "." + format + " downloaded successfully");
+                j++;
+            }
         });
         // await fs.writeFileSync(fileNameWithPath, buffer);
-        //by such way of changing response in buffer we can easily write it in output image file
     }
 }
 
 async function start() {
-    const uniqImageUrls = _.uniq(imageUrls);//removes duplicates
+    const filterDuplicates = await prompts({
+        name: 'value',
+        type: 'number',
+        message: 'enter 1 to enable duplicate filter, else any number:',
+    });
+    filterValue = filterDuplicates.value;
+
+    const uniqImageUrls = (filterValue === 1) ? _.uniq(imageUrls) : imageUrls;//removes duplicates incase filter is on else just import users imageurls
 
     //asking user for width and saving it in width variable
     const userInputWidth = await prompts({
         name: 'value',
         type: 'number',
-        message: 'enter width of image you want to download:\n',
+        message: 'enter width of image you want to download:',
     });
     width = userInputWidth.value;
 
@@ -64,8 +77,6 @@ async function start() {
     format = userInputFormat.value;
 
     downloadImages(uniqImageUrls);
-
-    console.log('Download complete!');
 }
 
 start();
